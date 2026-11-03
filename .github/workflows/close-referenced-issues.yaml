@@ -1,0 +1,116 @@
+name: Close Referenced Issues
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - develop
+      - master
+
+jobs:
+  close-referenced-issues:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Determine whether this merge is in scope
+        id: scope
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
+        run: |
+          case "$BASE:$HEAD" in
+            develop:feature/*|master:release/*|master:hotfix/*)
+              echo "OK: '$HEAD' -> '$BASE' is in scope."
+              echo "in_scope=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "'$HEAD' -> '$BASE' is not feature/*->develop, release/*->master, or hotfix/*->master; nothing to do."
+              echo "in_scope=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Mint nmg-bot installation token
+        if: steps.scope.outputs.in_scope == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Close issues referenced in the pull request body
+        if: steps.scope.outputs.in_scope == 'true'
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const prNumber = context.payload.pull_request.number;
+            const prTitle = context.payload.pull_request.title;
+            const baseRef = context.payload.pull_request.base.ref;
+
+            // Mirrors .config/issue-reference-keyword.js exactly: a line
+            // (bullet markers stripped) must start with Close, Fix, or
+            // Reference - case-sensitive, singular, no other form - to have
+            // any "#123"/issue-URL references on it recognised at all.
+            const ALLOWED_KEYWORDS = ['Close', 'Fix', 'Reference'];
+            const lineStartRe = new RegExp(`^(?:${ALLOWED_KEYWORDS.join('|')}):?\\s+`);
+            const refRe = /#(\d+)|https?:\/\/github\.com\/[^\s/]+\/[^\s/]+\/issues\/(\d+)/g;
+
+            const numbers = new Set();
+            for (const rawLine of body.split('\n')) {
+              const line = rawLine.replace(/^[\s*-]+/, '');
+              if (!lineStartRe.test(line)) continue;
+
+              let match;
+              while ((match = refRe.exec(line)) !== null) {
+                numbers.add(Number(match[1] || match[2]));
+              }
+            }
+
+            if (numbers.size === 0) {
+              core.info('No issue references found in the PR body - nothing to close.');
+              return;
+            }
+
+            const note = `Closed via #${prNumber} ("${prTitle}"), merged into \`${baseRef}\`.`;
+
+            for (const issueNumber of numbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                });
+
+                if (issue.pull_request) {
+                  core.warning(`#${issueNumber} is a pull request, not an issue - skipping.`);
+                  continue;
+                }
+
+                if (issue.state === 'closed') {
+                  core.info(`#${issueNumber} is already closed - skipping.`);
+                  continue;
+                }
+
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  state: 'closed',
+                  state_reason: 'completed',
+                });
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  body: note,
+                });
+
+                core.info(`Closed #${issueNumber}.`);
+              } catch (err) {
+                core.warning(`Could not close #${issueNumber}: ${err.message}`);
+              }
+            }

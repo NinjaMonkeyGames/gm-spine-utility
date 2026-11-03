@@ -1,0 +1,14 @@
+{
+  "recommendations": 
+    [
+      "yzhang.markdown-all-in-one",
+      "davidanson.vscode-markdownlint",
+      "redhat.vscode-yaml",
+      "fnando.linter",
+      "wmaurer.change-case",
+      "github.vscode-github-actions",
+      "dbaeumer.vscode-eslint",
+      "joshbolduc.commitlint",
+      "streetsidesoftware.code-spell-checker"
+    ]
+}

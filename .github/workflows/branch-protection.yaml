@@ -1,0 +1,49 @@
+name: Branch Policy Check
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches:
+      - master
+      - develop
+      - 'release/**'
+      - 'hotfix/**'
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce allowed source branch for the target
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # The whitelist: every (base, head) pairing this repo allows.
+          # Add a new valid pairing here and nowhere else.
+          case "$BASE:$HEAD" in
+            master:release/*|master:hotfix/*|develop:feature/*|develop:master)
+              echo "OK: '$HEAD' -> '$BASE'"
+              exit 0
+              ;;
+          esac
+
+          # Not in the whitelist above - exit 1 with a reason specific
+          # enough to point at CONTRIBUTING.md's actual rule, falling back
+          # to a generic message for a base this file doesn't otherwise
+          # recognise (defence in depth: the trigger's `branches:` filter
+          # is what actually keeps BASE to these four today).
+          case "$BASE" in
+            master)
+              echo "A pull request into master must come from a release/* or hotfix/* branch, not '$HEAD'. See CONTRIBUTING.md." >&2
+              ;;
+            develop)
+              echo "A pull request into develop must come from feature/* or master (the automated sync PR), not '$HEAD'. See CONTRIBUTING.md." >&2
+              ;;
+            release/*|hotfix/*)
+              echo "Pull requests into '$BASE' are not part of this workflow: release/* and hotfix/* branches only ever merge OUT (to master), never receive a merge IN. Push fixes directly to the branch instead, or close this PR. See CONTRIBUTING.md." >&2
+              ;;
+            *)
+              echo "Pull requests into '$BASE' are not covered by this branch policy. See CONTRIBUTING.md." >&2
+              ;;
+          esac
+          exit 1

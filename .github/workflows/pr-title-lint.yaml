@@ -1,0 +1,55 @@
+name: Lint PR Message
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches:
+      - develop
+
+jobs:
+  lint-pr-message:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Require the PR title to describe more than the last commit
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          last_subject="$(git log -1 --format=%s)"
+          if [ "$TITLE" = "$last_subject" ]; then
+            echo "::error::PR title is identical to the last commit's subject ('$last_subject'). GitHub auto-fills this from a single-commit branch, and it describes that one commit - not what's landing on develop as a whole. Edit the PR title (and body, if it needs it too) to describe the branch's actual contribution, then push again."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install commitlint
+        run: npm ci
+
+      - name: Print commitlint version
+        run: npx commitlint --version
+
+      - name: Assemble title + body as one message
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: printf '%s\n\n%s\n' "$TITLE" "$BODY" > pr-message.txt
+
+      - name: Lint against .config/commitlint.pr-message.config.mjs
+        run: npx commitlint --config .config/commitlint.pr-message.config.mjs --edit pr-message.txt
+
+      - name: Lint signed-off-by (full commit range, excluding merges)
+        run: |
+          set -euo pipefail
+          from="$(git merge-base HEAD origin/develop)"
+          git rev-list --no-merges --reverse "$from..HEAD" | while read -r sha; do
+            echo "Checking $sha..."
+            git log -1 --format=%B "$sha" > commit-msg.txt
+            npx commitlint --config .config/commitlint.signed-off-only.config.mjs --edit commit-msg.txt
+          done
