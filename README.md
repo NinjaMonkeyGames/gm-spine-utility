@@ -68,18 +68,6 @@ from scratch.
 
 | Method                    | Description                                                                 |
 | ------------------------- | --------------------------------------------------------------------------- |
-| `get_x([_x])`             | Returns the column index under the given X coordinate (mouse X by default). |
-| `get_y([_y])`             | Returns the row index under the given Y coordinate (mouse Y by default).    |
-| `shift_x(_value)`         | Shifts the visible columns left/right.                                      |
-| `shift_y(_value)`         | Shifts the visible rows up/down.                                            |
-| `update_row(_value)`      | Changes the number of rows.                                                 |
-| `update_column(_value)`   | Changes the number of columns.                                              |
-| `zoom([_zoom_direction])` | Zooms in (`true`) or out (`false`) while preserving on-screen grid size.    |
-| `set_coords()`            | Highlights the row/column labels under the current mouse position.          |
-| `set_cursor()`            | Sets the mouse pointer graphic depending on whether it's over the grid.     |
-| `step()`                  | Handles default mouse-wheel zoom and arrow-key panning input.               |
-| `draw()`                  | Draws the grid lines, labels, and any tile data.                            |
-| `destroy()`               | Frees GPU resources and removes the instance from `global.grid_list`.       |
 
 ## ENVIRONMENT DEPENDENCY MANIFESTO
 
