@@ -1,6 +1,6 @@
-/// @description Cleans up the instance from the global list and clears data
+/// @description Cleanup memmory after use
 
-for (var _i = 0; _i < array_length(global.spine_list); _i++)
+if (variable_instance_exists(id, "my_grid")) 
 {
-	global.spine_list[_i].destroy();
+    my_grid.destroy();
 }

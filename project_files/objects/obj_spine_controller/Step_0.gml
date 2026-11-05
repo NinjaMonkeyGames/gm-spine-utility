@@ -1,9 +1,6 @@
-/// @description Loops through step code for each spine instance
+/// @description 
 
-var _list_size = array_length(global.spine_list);
-
-for (var i = 0; i < _list_size; i++)
+for (var _i = 0; _i < array_length(characters); _i++) 
 {
-    var _current_instance = global.spine_list[i];
-    _current_instance.step();
+    characters[_i].step();
 }

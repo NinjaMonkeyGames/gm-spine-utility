@@ -1,62 +1,51 @@
-// CONSTRUCTOR CLASS FOR GENERATING SPINE OBJECT
+/// @description Stores data structure for each generated character.
 
-/// @description Singleton guard
-// FIRST thing in Create, so a duplicate controller exits before it can touch any globals below.
+characters = [];
 
-if (variable_global_exists("controller") && instance_exists(global.controller))
+/// @function																		spine_list
+/// @description																Generates instances of spine characters and adds them to a global list.
+/// @parameter			{Asset.GMSprite}		_sprite		The sprite containing the spine data.
+/// @parameter			{real}							_x				Amount to offset spine object horizontally.
+/// @parameter			{real}							_y				Amount to offset spine object vertically
+/// @parameter			{real}							_x_scale		Set horizontal scale for spine model.
+/// @parameter			{real}							_y_scale		Set vertical scale for spine model.
+	
+global.spine_list = function(_sprite, _x, _y, _x_scale, _y_scale) constructor 
 {
-	show_debug_message("A singleton pattern has been implemented for this object. Please don't call me again!");
-    instance_destroy();	// Cleanup instance from memory.
-    exit;				// Stop the rest of Create from running
-}
-
-global.controller = id;
-
-/// @description Generate 2D grid
-
-global.spine_list = []; // Stores array of spine structs
-
-/**
- * @function grid()
- * @constructor
- * @description Generates a 2D grid based on parameters.
- * @since v0.1.0
- * @param   {Asset.GMSprite}    [_sprite]           Spine asset to use.
- * @param	{Real}				[_x_offset]			Offset draw position (horizontal).
- * @param	{Real}				[_y_offset]			Offset draw position (vertical).
- * @returns {Struct}								A new grid struct.
- */
-
-function grid
-(
-_sprite = spr_spineboy,
-_x_offset = 32, _y_offset = 32, 
-
-
-
-)
-
-constructor
-{
-	palette_id = (function() 
+	// Imported Variables
+	
+    sprite = _sprite;
+	
+    x = _x;
+    y = _y;
+	
+    x_scale = _x_scale;
+    y_scale = _y_scale;
+	
+	// 
+	
+	animation_name = "idle";
+    
+    array_push(obj_spine_controller.characters, self); // Add new spine asset to characters list.
+	
+	/// @description Spine skeleton logic.
+	/// @returns {void}
+	 
+    static step = function() 
 	{
-	    static _instances = [];
-	    array_push(_instances, self);
-	    return array_length(_instances) - 1;
-	})();
+
+    };
 	
-	spine_data = [];
-	
-	x_offset = _x_offset;
-    y_offset = _y_offset;
-	
-	static step = function() 
+	/// @description Draws the skeleton animation.
+	/// @returns {void}
+	 
+    static draw = function() 
 	{
 		
-	}
-	
-	static draw = function() 
-	{
-		
-	}
-}
+		static  animation_time = 0;
+        animation_time += 1; 
+        draw_skeleton(sprite, animation_name, "default", animation_time, x, y, x_scale, y_scale, 0, c_white, 1);
+    };
+};
+
+

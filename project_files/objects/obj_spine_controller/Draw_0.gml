@@ -1,9 +1,6 @@
-/// @description Loops through draw code for each spine instance
+/// @description loop through and draw all spine instances
 
-var _list_size = array_length(global.spine_list);
-
-for (var _i = 0; _i < _list_size; _i++)
+for (var _i = 0; _i < array_length(characters); _i++) 
 {
-    var _current_instance = global.spine_list[_i]; 
-    _current_instance.draw();
+    characters[_i].draw();
 }
